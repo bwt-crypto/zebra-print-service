@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 PRINTER_NAME = "ZDesigner GK420t"   # Имя из Панель управления → Устройства и принтеры
 HOST = "0.0.0.0"                    # доступен с любого ПК в сети
 PORT = 5000
-APP_VERSION = "1.0.2"
+APP_VERSION = "1.0.3"
 UPDATE_REPO = "bwt-crypto/zebra-print-service"
 UPDATE_TIMEOUT = 8
 MAX_COPIES = 999

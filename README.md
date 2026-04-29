@@ -41,13 +41,13 @@ PRINTER_NAME = "ZDesigner GK420t"
 call venv\Scripts\activate
 python -m pip install pyinstaller
 pyinstaller --clean --noconfirm app.spec
-powershell -NoProfile -Command "Compress-Archive -Path 'dist\ZebraPrint.exe' -DestinationPath 'dist\ZebraPrint-v1.0.2.zip' -Force"
+powershell -NoProfile -Command "Compress-Archive -Path 'dist\ZebraPrint.exe' -DestinationPath 'dist\ZebraPrint-v1.0.3.zip' -Force"
 ```
 
 Готовая сборка лежит в `dist`:
 
 - `ZebraPrint.exe`
-- `ZebraPrint-v1.0.2.zip`
+- `ZebraPrint-v1.0.3.zip`
 
 В публичном репозитории `catalog.json` и `catalog_custom.json` являются заглушками.
 На рабочем компьютере с принтером положите реальные локальные файлы рядом с
