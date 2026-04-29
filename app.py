@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 PRINTER_NAME = "ZDesigner GK420t"   # Имя из Панель управления → Устройства и принтеры
 HOST = "0.0.0.0"                    # доступен с любого ПК в сети
 PORT = 5000
-APP_VERSION = "1.0.3"
+APP_VERSION = "1.0.4"
 UPDATE_REPO = "bwt-crypto/zebra-print-service"
 UPDATE_TIMEOUT = 8
 MAX_COPIES = 999
@@ -33,6 +33,21 @@ else:
 
 CATALOG_FILE        = os.path.join(BASE_DIR, "catalog.json")
 CUSTOM_CATALOG_FILE = os.path.join(BASE_DIR, "catalog_custom.json")
+SERVICE_LOG_FILE    = os.path.join(BASE_DIR, "zebra_service.log")
+
+try:
+    file_handler = logging.FileHandler(SERVICE_LOG_FILE, encoding="utf-8")
+    file_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    logging.getLogger().addHandler(file_handler)
+except Exception as e:
+    logging.warning(f"Не удалось включить файловый лог {SERVICE_LOG_FILE}: {e}")
+
+
+def _log_uncaught_exception(exc_type, exc_value, exc_traceback):
+    logging.critical("Необработанная ошибка", exc_info=(exc_type, exc_value, exc_traceback))
+
+
+sys.excepthook = _log_uncaught_exception
 
 
 def load_catalog() -> list[dict]:
@@ -853,3 +868,9 @@ if __name__ == "__main__":
     except ImportError:
         logging.warning("waitress не установлен, используется dev-сервер. Запусти: pip install waitress")
         app.run(host=HOST, port=PORT, debug=False)
+    except Exception as e:
+        logging.exception(f"Сервис не смог запуститься: {e}")
+        print()
+        print(f"Сервис не смог запуститься: {e}")
+        print(f"Подробности записаны в: {SERVICE_LOG_FILE}")
+        input("Нажмите Enter, чтобы закрыть окно...")
