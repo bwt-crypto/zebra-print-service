@@ -41,20 +41,21 @@ PRINTER_NAME = "ZDesigner GK420t"
 call venv\Scripts\activate
 python -m pip install pyinstaller
 pyinstaller --clean --noconfirm app.spec
-powershell -NoProfile -Command "Compress-Archive -Path 'dist\ZebraPrint.exe' -DestinationPath 'dist\ZebraPrint-v1.0.4.zip' -Force"
+powershell -NoProfile -Command "Compress-Archive -Path 'dist\ZebraPrint\*' -DestinationPath 'dist\ZebraPrint-v1.0.7.zip' -Force"
 ```
 
-Готовая сборка лежит в `dist`:
+Готовая сборка лежит в `dist\ZebraPrint`:
 
 - `ZebraPrint.exe`
-- `ZebraPrint-v1.0.4.zip`
+- `_internal`
+- `ZebraPrint-v1.0.7.zip`
 
 В публичном репозитории `catalog.json` и `catalog_custom.json` являются заглушками.
 На рабочем компьютере с принтером положите реальные локальные файлы рядом с
 `ZebraPrint.exe`.
 
-Архив релиза содержит только `ZebraPrint.exe`, чтобы автообновление никогда не
-затирало рабочие локальные каталоги.
+Архив релиза содержит `ZebraPrint.exe` и папку `_internal`, но не содержит рабочие
+`catalog.json` и `catalog_custom.json`.
 
 ## Автообновление
 
@@ -65,7 +66,7 @@ https://github.com/bwt-crypto/zebra-print-service/releases/latest
 ```
 
 Если тег релиза новее текущей версии `APP_VERSION`, сервис скачивает zip-архив
-`ZebraPrint-vX.Y.Z.zip`, заменяет `ZebraPrint.exe` и перезапускается.
+`ZebraPrint-vX.Y.Z.zip`, заменяет файлы приложения и перезапускается.
 Локальные `catalog.json` и `catalog_custom.json` при обновлении не перезаписываются,
 если эти файлы уже есть рядом с exe.
 

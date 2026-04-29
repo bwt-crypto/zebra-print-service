@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 PRINTER_NAME = "ZDesigner GK420t"   # Имя из Панель управления → Устройства и принтеры
 HOST = "0.0.0.0"                    # доступен с любого ПК в сети
 PORT = 5000
-APP_VERSION = "1.0.6"
+APP_VERSION = "1.0.7"
 UPDATE_REPO = "bwt-crypto/zebra-print-service"
 UPDATE_TIMEOUT = 8
 MAX_COPIES = 999
@@ -117,6 +117,7 @@ def _start_update_script(update_dir: str, latest_tag: str):
     new_exe = _find_file(update_dir, "ZebraPrint.exe")
     if not new_exe:
         raise RuntimeError("В архиве обновления нет ZebraPrint.exe")
+    package_dir = os.path.dirname(new_exe)
 
     new_catalog = _find_file(update_dir, "catalog.json")
     new_custom = _find_file(update_dir, "catalog_custom.json")
@@ -148,19 +149,21 @@ def _start_update_script(update_dir: str, latest_tag: str):
     commands = [
         "@echo off",
         "chcp 65001 >nul",
-        "setlocal",
+        "setlocal EnableDelayedExpansion",
         f"set \"LOG={update_log}\"",
+        f"set \"PAYLOAD={package_dir}\"",
+        f"set \"APPDIR={base_dir}\"",
         f"echo [%date% %time%] Updating Zebra Print Service to {latest_tag} > \"%LOG%\"",
         "timeout /t 2 /nobreak >> \"%LOG%\" 2>&1",
         f"taskkill /PID {os.getpid()} /F >> \"%LOG%\" 2>&1",
         "timeout /t 2 /nobreak >> \"%LOG%\" 2>&1",
         "for /L %%i in (1,1,30) do (",
-        f"  copy /Y {_bat_quote(new_exe)} {_bat_quote(current_exe)} >> \"%LOG%\" 2>&1",
-        "  if not errorlevel 1 goto copied",
-        "  echo [%date% %time%] Copy attempt %%i failed, retrying... >> \"%LOG%\"",
+        "  robocopy \"%PAYLOAD%\" \"%APPDIR%\" /E /R:1 /W:1 /XF catalog.json catalog_custom.json zebra_service.log zebra_update.log zebra_launch.log *.zip install_update.bat start_updated_app.bat >> \"%LOG%\" 2>&1",
+        "  if !ERRORLEVEL! LSS 8 goto copied",
+        "  echo [%date% %time%] Copy attempt %%i failed with !ERRORLEVEL!, retrying... >> \"%LOG%\"",
         "  timeout /t 1 /nobreak >> \"%LOG%\" 2>&1",
         ")",
-        "echo [%date% %time%] ERROR: failed to replace exe >> \"%LOG%\"",
+        "echo [%date% %time%] ERROR: failed to replace application files >> \"%LOG%\"",
         "exit /b 1",
         ":copied",
     ]
