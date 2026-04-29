@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Пример товара НПВХ",
+    "barcode": "T01T000000001",
+    "template": "npvh"
+  },
+  {
+    "name": "Пример товара ПЭ100",
+    "barcode": "T01T000000002",
+    "template": "pe100"
+  },
+  {
+    "name": "Пример товара Valfex",
+    "barcode": "T01T000000003",
+    "template": "valfex"
+  }
+]
