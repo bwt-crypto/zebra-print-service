@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 PRINTER_NAME = "ZDesigner GK420t"   # Имя из Панель управления → Устройства и принтеры
 HOST = "0.0.0.0"                    # доступен с любого ПК в сети
 PORT = 5000
-APP_VERSION = "1.0.4"
+APP_VERSION = "1.0.5"
 UPDATE_REPO = "bwt-crypto/zebra-print-service"
 UPDATE_TIMEOUT = 8
 MAX_COPIES = 999
@@ -113,6 +113,7 @@ def _start_update_script(update_dir: str, latest_tag: str):
     current_exe = sys.executable
     base_dir = os.path.dirname(current_exe)
     update_log = os.path.join(base_dir, "zebra_update.log")
+    launch_log = os.path.join(base_dir, "zebra_launch.log")
     new_exe = _find_file(update_dir, "ZebraPrint.exe")
     if not new_exe:
         raise RuntimeError("В архиве обновления нет ZebraPrint.exe")
@@ -120,6 +121,29 @@ def _start_update_script(update_dir: str, latest_tag: str):
     new_catalog = _find_file(update_dir, "catalog.json")
     new_custom = _find_file(update_dir, "catalog_custom.json")
     updater_path = os.path.join(update_dir, "install_update.bat")
+    launcher_path = os.path.join(update_dir, "start_updated_app.bat")
+
+    launcher_commands = [
+        "@echo off",
+        "chcp 65001 >nul",
+        f"cd /d {_bat_quote(base_dir)}",
+        f"set \"LAUNCH_LOG={launch_log}\"",
+        "echo Zebra Print Service is starting...",
+        "echo Logs: %LAUNCH_LOG%",
+        "echo [%date% %time%] Launching ZebraPrint.exe > \"%LAUNCH_LOG%\"",
+        f"{_bat_quote(current_exe)} >> \"%LAUNCH_LOG%\" 2>&1",
+        "set \"EXIT_CODE=%ERRORLEVEL%\"",
+        "echo [%date% %time%] ZebraPrint.exe exited with %EXIT_CODE% >> \"%LAUNCH_LOG%\"",
+        "if not \"%EXIT_CODE%\"==\"0\" (",
+        "  echo.",
+        "  echo ZebraPrint.exe exited with code %EXIT_CODE%.",
+        "  echo Details: %LAUNCH_LOG%",
+        "  pause",
+        ")",
+    ]
+
+    with open(launcher_path, "w", encoding="utf-8") as f:
+        f.write("\n".join(launcher_commands) + "\n")
 
     commands = [
         "@echo off",
@@ -150,7 +174,7 @@ def _start_update_script(update_dir: str, latest_tag: str):
         )
     commands.extend([
         f"echo [%date% %time%] Starting updated app >> \"%LOG%\"",
-        f"start \"Zebra Print Service\" /D {_bat_quote(base_dir)} {_bat_quote(current_exe)}",
+        f"start \"Zebra Print Service\" /D {_bat_quote(base_dir)} {_bat_quote(launcher_path)}",
         "if errorlevel 1 echo [%date% %time%] ERROR: failed to start app >> \"%LOG%\"",
         "exit",
     ])
