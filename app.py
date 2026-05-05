@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(mess
 PRINTER_NAME = "ZDesigner GK420t"   # Имя из Панель управления → Устройства и принтеры
 HOST = "0.0.0.0"                    # доступен с любого ПК в сети
 PORT = 5000
-APP_VERSION = "1.0.7"
+APP_VERSION = "1.0.8"
 UPDATE_REPO = "bwt-crypto/zebra-print-service"
 UPDATE_TIMEOUT = 8
 MAX_COPIES = 999
@@ -119,6 +119,14 @@ def _start_update_script(update_dir: str, latest_tag: str):
         raise RuntimeError("В архиве обновления нет ZebraPrint.exe")
     package_dir = os.path.dirname(new_exe)
 
+    # Sanity-check: для onedir-сборки рядом с exe должна быть папка _internal/
+    internal_dir = os.path.join(package_dir, "_internal")
+    if not os.path.isdir(internal_dir):
+        raise RuntimeError(
+            "В архиве обновления нет папки _internal/ — пакет битый, обновление отменено"
+        )
+
+    first_run_flag = os.path.join(base_dir, "zebra_first_run.flag")
     new_catalog = _find_file(update_dir, "catalog.json")
     new_custom = _find_file(update_dir, "catalog_custom.json")
     updater_path = os.path.join(update_dir, "install_update.bat")
@@ -129,13 +137,22 @@ def _start_update_script(update_dir: str, latest_tag: str):
         "chcp 65001 >nul",
         f"cd /d {_bat_quote(base_dir)}",
         f"set \"LAUNCH_LOG={launch_log}\"",
+        f"set \"FIRST_RUN_FLAG={first_run_flag}\"",
         "echo Zebra Print Service is starting...",
         "echo Logs: %LAUNCH_LOG%",
         "echo [%date% %time%] Launching ZebraPrint.exe > \"%LAUNCH_LOG%\"",
         f"{_bat_quote(current_exe)} >> \"%LAUNCH_LOG%\" 2>&1",
         "set \"EXIT_CODE=%ERRORLEVEL%\"",
         "echo [%date% %time%] ZebraPrint.exe exited with %EXIT_CODE% >> \"%LAUNCH_LOG%\"",
-        "if not \"%EXIT_CODE%\"==\"0\" (",
+        # При первом запуске после апдейта окно остаётся открытым в любом случае,
+        # чтобы пользователь увидел ошибку, если бутлоадер PyInstaller упал мгновенно.
+        "if exist \"%FIRST_RUN_FLAG%\" (",
+        "  del /F /Q \"%FIRST_RUN_FLAG%\" >nul 2>&1",
+        "  echo.",
+        "  echo ZebraPrint.exe exited with code %EXIT_CODE% (first run after update).",
+        "  echo Details: %LAUNCH_LOG%",
+        "  pause",
+        ") else if not \"%EXIT_CODE%\"==\"0\" (",
         "  echo.",
         "  echo ZebraPrint.exe exited with code %EXIT_CODE%.",
         "  echo Details: %LAUNCH_LOG%",
@@ -166,6 +183,11 @@ def _start_update_script(update_dir: str, latest_tag: str):
         "echo [%date% %time%] ERROR: failed to replace application files >> \"%LOG%\"",
         "exit /b 1",
         ":copied",
+        "if not exist \"%APPDIR%\\_internal\" (",
+        "  echo [%date% %time%] ERROR: _internal\\ missing in APPDIR after copy, aborting >> \"%LOG%\"",
+        "  exit /b 1",
+        ")",
+        f"echo. > {_bat_quote(first_run_flag)}",
     ]
     if new_catalog:
         commands.append(
